@@ -27,19 +27,14 @@ export default class ReactNativeAWSCognito extends Component {
       AWSConfig.userPoolId
     ) );
 
-    AWSCognito.getSession('hfrntt@gmail.com', 'hasl0hasl0')
+    AWSCognito.getSession(AWSConfig.email, AWSConfig.password)
       .then( resp => {
-        console.log('success!');
-        console.log(resp);
-
-        AWSCognito.getCredentials('hfrntt@gmail.com')
+        AWSCognito.getCredentials(AWSConfig.email)
           .then( resp => {
-            console.log('credentials: success!');
             console.log(resp);
           })
           .catch( err => {
-            console.log('credentials: error :-(');
-            console.log(err)
+            console.error(err)
           } )
       } )
       .catch( err => {
