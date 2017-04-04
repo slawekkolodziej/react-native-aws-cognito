@@ -133,11 +133,20 @@ class RNAWSCognito: NSObject {
     self.credentialsProvider?.credentials()
       .continueWith(block: { (task: AWSTask!) -> AnyObject! in
         if let error = task.error as? NSError {
-          print("Error: \(error)")
           reject("error", "\(error)", error);
         } else {
-          print("Success: \(task.result)")
-          resolve("\(task.result)");
+          let expirationTime = self.getTime(date: task.result?.expiration)
+          
+          let result: [String: Any] = [
+            "accessKey": task.result?.accessKey,
+            "secretKey": task.result?.secretKey,
+            "sessionKey": task.result?.sessionKey,
+            "expirationTime": expirationTime
+          ]
+          resolve(result)
+          
+//          print("Success: \(task.result)")
+//          resolve("\(task.result)");
         }
         
         return nil
