@@ -144,9 +144,6 @@ class RNAWSCognito: NSObject {
             "expirationTime": expirationTime
           ]
           resolve(result)
-          
-//          print("Success: \(task.result)")
-//          resolve("\(task.result)");
         }
         
         return nil
