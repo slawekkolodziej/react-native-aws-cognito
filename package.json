@@ -7,17 +7,25 @@
 		"test": "jest"
 	},
 	"dependencies": {
+		"hash.js": "^1.0.3",
 		"react": "~15.4.1",
 		"react-native": "0.42.0",
-		"react-native-aws-signature": "^0.0.9"
+		"react-native-aws-signature": "^0.0.9",
+		"react-native-paho-mqtt": "^0.0.8"
 	},
 	"devDependencies": {
 		"babel-jest": "19.0.0",
+		"babel-preset-es2015": "^6.24.0",
 		"babel-preset-react-native": "1.9.1",
+		"babel-preset-stage-0": "^6.22.0",
 		"jest": "19.0.2",
 		"react-test-renderer": "~15.4.1"
 	},
 	"jest": {
-		"preset": "react-native"
+		"preset": [
+			"stage-0",
+			"es2015",
+			"react-native"
+		]
 	}
 }
