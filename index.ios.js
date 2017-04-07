@@ -10,27 +10,44 @@ import {
   NativeModules,
   StyleSheet,
   Text,
-  View
+  View,
+  AsyncStorage,
 } from 'react-native';
+import moment from 'moment';
 
-import hash from 'hash.js';
-import AWSSignature from 'react-native-aws-signature';
 import AWSConfig from './aws.json';
 
-import { Client, Message } from 'react-native-paho-mqtt';
+import init from 'react_native_mqtt';
+
+import CryptoJS from 'crypto-js';
+
 
 const AWSCognito = NativeModules.RNAWSCognito;
 
-// TODO: refactor
-const myStorage = {
-  setItem: (key, item) => {
-    myStorage[key] = item;
-  },
-  getItem: (key) => myStorage[key],
-  removeItem: (key) => {
-    delete myStorage[key];
-  },
+
+
+function SigV4Utils(){};
+
+SigV4Utils.sign = function(key, msg){
+  var hash = CryptoJS.HmacSHA256(msg, key);
+  return hash.toString(CryptoJS.enc.Hex);
 };
+
+SigV4Utils.sha256 = function(msg) {
+  var hash = CryptoJS.SHA256(msg);
+  return hash.toString(CryptoJS.enc.Hex);
+};
+
+SigV4Utils.getSignatureKey = function(key, dateStamp, regionName, serviceName) {
+  var kDate = CryptoJS.HmacSHA256(dateStamp, 'AWS4' + key);
+  var kRegion = CryptoJS.HmacSHA256(regionName, kDate);
+  var kService = CryptoJS.HmacSHA256(serviceName, kRegion);
+  var kSigning = CryptoJS.HmacSHA256('aws4_request', kService);
+  return kSigning;
+};
+
+
+
 
 export default class ReactNativeAWSCognito extends Component {
   componentDidMount() {
@@ -43,111 +60,108 @@ export default class ReactNativeAWSCognito extends Component {
     );
 
     AWSCognito.getSession(AWSConfig.email, AWSConfig.password)
-      .then( () => AWSCognito.getCredentials(AWSConfig.email) )
-      .then( credentials => this.connectToMqtt(credentials) )
+      .then( tokens => Promise.all([
+        AWSCognito.getCredentials(AWSConfig.email),
+        tokens,
+      ]) )
+      .then( ([credentials, tokens]) => this.connectToMqtt(credentials, tokens) )
       .catch( err => console.error('Error: ', err) )
   }
 
-  connectToMqtt(credentials) {
-    const host = `${AWSConfig.endpointAddress}.iot.${AWSConfig.region}.amazonaws.com`;
+  computeUrl(credentials, tokens) {
+    const time = moment.utc();
+    const dateStamp = time.format('YYYYMMDD');
+    const amzdate = dateStamp + 'T' + time.format('HHmmss') + 'Z';
 
-    const datetime = (new Date()).toISOString().replace(/[:\-]|\.\d{3}/g, '')
-    const date = datetime.substr(0, 8);
     const method = 'GET';
     const protocol = 'wss';
-    const uri = '/mqtt';
+    const canonicalUri = '/mqtt';
     const service = 'iotdevicegateway';
     const algorithm = 'AWS4-HMAC-SHA256';
+    const region = AWSConfig.region;
+    const secretKey = AWSConfig.secretKey;
+    const accessKey = AWSConfig.accessKey;
+    const host = AWSConfig.endpointAddress;
 
-    const credentialScope = date + '/' + AWSConfig.region + '/' + service + '/' + 'aws4_request';
-
-    let canonicalQuerystring = 'X-Amz-Algorithm=' + algorithm;
-    canonicalQuerystring += '&X-Amz-Credential=' + encodeURIComponent(credentials.accessKey + '/' + credentialScope);
-    canonicalQuerystring += '&X-Amz-Date=' + datetime;
+    var credentialScope = dateStamp + '/' + region + '/' + service + '/' + 'aws4_request';
+    var canonicalQuerystring = 'X-Amz-Algorithm=AWS4-HMAC-SHA256';
+    canonicalQuerystring += '&X-Amz-Credential=' + encodeURIComponent(accessKey + '/' + credentialScope);
+    canonicalQuerystring += '&X-Amz-Date=' + amzdate;
+    canonicalQuerystring += '&X-Amz-Expires=86400';
     canonicalQuerystring += '&X-Amz-SignedHeaders=host';
 
     const canonicalHeaders = 'host:' + host + '\n';
-    const payloadHash = hash.sha256().update('').digest('hex')
-    const canonicalRequest = method + '\n' + uri + '\n' + canonicalQuerystring + '\n' + canonicalHeaders + '\nhost\n' + payloadHash;
+    const payloadHash = SigV4Utils.sha256('');
+    const canonicalRequest = method + '\n' + canonicalUri + '\n' + canonicalQuerystring + '\n' + canonicalHeaders + '\nhost\n' + payloadHash;
+    console.log('canonicalRequest ' + canonicalRequest);
 
-
-    const awsSignature = new AWSSignature();
-    awsSignature.setParams({
-      path: '/?Param2=value2&Param1=value1',
-        method: 'get',
-        service: 'service',
-        headers: {
-            'X-Amz-Date': (new Date()).toISOString().replace(/[:\-]|\.\d{3}/g, ''),
-            'host': host
-        },
-      region: AWSConfig.region,
-      body: '',
-      credentials: {
-        SecretKey: credentials.secretKey,
-        AccessKeyId: credentials.accessKey,
-      }
-    });
-
-    const signature = awsSignature.getSignature();
+    var stringToSign = algorithm + '\n' +  amzdate + '\n' +  credentialScope + '\n' +  SigV4Utils.sha256(canonicalRequest);
+    var signingKey = SigV4Utils.getSignatureKey(secretKey, dateStamp, region, service);
+    console.log('stringToSign-------');
+    console.log(stringToSign);
+    console.log('------------------');
+    console.log('signingKey ' + signingKey);
+    var signature = SigV4Utils.sign(signingKey, stringToSign);
 
     canonicalQuerystring += '&X-Amz-Signature=' + signature;
-    canonicalQuerystring += '&X-Amz-Security-Token=' + encodeURIComponent(credentials.sessionKey);
+    return 'wss://' + host + canonicalUri + '?' + canonicalQuerystring;
+  }
 
-    const clientUrl = protocol + '://' + host + uri + '?' + canonicalQuerystring;
+  connectToMqtt(credentials, tokens) {
+    const clientUrl = this.computeUrl(credentials, tokens)
 
-    const client = new Client({
-      uri: clientUrl,
-      clientId: 'react-native-demo',
-      storage: myStorage
-    });
+    console.log({ clientUrl });
 
-    client.on('connectionLost', (responseObject) => {
-      if (responseObject.errorCode !== 0) {
-        console.log(responseObject.errorMessage);
+    init({
+      size: 10000,
+      storageBackend: AsyncStorage,
+      defaultExpires: 1000 * 3600 * 24,
+      enableCache: true,
+      sync : {
       }
     });
-    client.on('messageReceived', (message) => {
-      console.log(message.payloadString);
-    });
 
-    // connect the client
-    client.connect()
-      .then(() => {
-        // Once a connection has been made, make a subscription and send a message.
-        console.log('onConnect');
-        return client.subscribe('World');
-      })
-      .then(() => {
-        const message = new Message('Hello');
-        message.destinationName = 'World';
-        client.send(message);
-      })
-      .catch((responseObject) => {
-        if (responseObject.errorCode !== 0) {
-          console.log('onConnectionLost:' + responseObject.errorMessage);
+    const TOPIC = 'test';
+
+    const client = new Paho.MQTT.Client(clientUrl, 'unique_client_name');
+
+    function onConnect() {
+      console.log("onConnect");
+
+      client.subscribe(TOPIC, {
+        onSuccess: function(){
+          console.log('subscribed to '+ TOPIC);
+        },
+        onFailure: function(){
+          console.log('subscription failed');
         }
-      })
-    ;
+      });
 
-    // const authorization = awsSignature.getAuthorizationHeader();
+      var message = new Paho.MQTT.Message("Hello from react-native");
+      message.destinationName = TOPIC;
+      client.send(message);
+    }
 
-    // console.log(url, credentials, signature, authorization);
+    client.onConnectionLost = function onConnectionLost(responseObject) {
+      console.log("onConnectionLost")
+      if (responseObject.errorCode !== 0) {
+        console.log("onConnectionLost:"+responseObject.errorMessage);
+      }
+    }
 
-    // const mqttClient = new AWSMqtt({
-    //   accessKeyId: credentials.accessKey,
-    //   secretAccessKey: credentials.secretKey,
-    //   sessionToken: credentials.sessionKey,
-    //   endpointAddress: AWSConfig.endpointAddress,
-    //   region: AWSConfig.region,
-    // });
+    client.onMessageArrived = function onMessageArrived(message) {
+      console.log("onMessageArrived:"+message.payloadString);
+    }
 
-    // mqttClient.on('connect', () => {
-    //   mqttClient.subscribe('test-topic');
-    //   console.log('connected to iot mqtt websocket');
-    // });
-    // mqttClient.on('message', (topic, message) => {
-    //   console.log('Got message:', message.toString());
-    // });
+    client.connect({
+      useSSL: true,
+      timeout: 3,
+      mqttVersion:4,
+      onSuccess: onConnect,
+      onFailure: function() {
+        console.log('connectionLost');
+      }
+    });
   };
 
   render() {
