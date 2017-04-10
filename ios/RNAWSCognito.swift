@@ -10,7 +10,6 @@ import Foundation
 import AWSCore
 import AWSCognito
 import AWSCognitoIdentityProvider
-import AWSIoT
 
 @objc(RNAWSCognito)
 class RNAWSCognito: NSObject {
@@ -19,7 +18,11 @@ class RNAWSCognito: NSObject {
 
   private var userPool: AWSCognitoIdentityUserPool? = nil
   
-  private var credentialsProvider: AWSCredentialsProvider? = nil
+  private var credentialsProvider: AWSCognitoCredentialsProvider? = nil
+  
+  private var region: AWSRegionType? = nil
+  
+  private var identityPoolId: String? = nil
   
   private func getRegion(regionName: String) -> AWSRegionType {
     switch regionName {
@@ -60,18 +63,8 @@ class RNAWSCognito: NSObject {
   @objc func setUserPool(_ regionName: String, identityPoolId: String, clientId: String, clientSecret: String?, poolId: String) -> Void {
     let region = self.getRegion(regionName: regionName)
     
-    self.credentialsProvider = AWSCognitoCredentialsProvider(
-      regionType: region,
-      identityPoolId: identityPoolId
-//      identityProviderManager: self.userPool
-    )
-    
-    let servicePoolConfiguration = AWSServiceConfiguration(
-      region: region,
-      credentialsProvider: self.credentialsProvider
-    )
-  
-    AWSServiceManager.default().defaultServiceConfiguration = servicePoolConfiguration
+    self.region = region
+    self.identityPoolId = identityPoolId
     
     let userPoolConfiguration = AWSCognitoIdentityUserPoolConfiguration(
       clientId: clientId,
@@ -79,19 +72,24 @@ class RNAWSCognito: NSObject {
       poolId: poolId
     )
     
+    let serviceConfiguration = AWSServiceConfiguration(
+      region: region,
+      credentialsProvider: nil
+    )
+    
     AWSCognitoIdentityUserPool.register(
-      with: servicePoolConfiguration,
+      with: serviceConfiguration,
       userPoolConfiguration: userPoolConfiguration,
       forKey: "UserPool"
     )
     
     self.userPool = AWSCognitoIdentityUserPool(forKey: "UserPool")
     
-//    self.credentialsProvider = AWSCognitoCredentialsProvider(
-//      regionType: region,
-//      identityPoolId: identityPoolId,
-//      identityProviderManager: self.userPool
-//    )
+    self.credentialsProvider = AWSCognitoCredentialsProvider(
+      regionType: region,
+      identityPoolId: identityPoolId,
+      identityProviderManager: self.userPool
+    )
   }
   
   
@@ -100,22 +98,23 @@ class RNAWSCognito: NSObject {
     password: String,
     resolver resolve: @escaping RCTPromiseResolveBlock,
     rejecter reject: @escaping RCTPromiseRejectBlock) -> Void {
-
+    
     self.user = userPool?.getUser(email)
     self.user?.getSession(email, password: password, validationData: nil)
       .continueWith(block: { (task: AWSTask!) -> AnyObject! in
         if let error = task.error as? NSError {
-          print("Error: \(error)")
           reject("error", "\(error)", error);
+
         } else {
           let expirationTime = self.getTime(date: task.result?.expirationTime)
-          
+
           let result: [String: Any] = [
             "accessToken": task.result?.accessToken?.tokenString,
             "idToken": task.result?.idToken?.tokenString,
             "refreshToken": task.result?.refreshToken?.tokenString,
             "expirationTime": expirationTime
           ]
+
           resolve(result)
         }
 
@@ -123,17 +122,23 @@ class RNAWSCognito: NSObject {
       })
   }
   
-
+  
   @objc func getCredentials(_
     email: String,
     resolver resolve: @escaping RCTPromiseResolveBlock,
     rejecter reject: @escaping RCTPromiseRejectBlock) -> Void {
     
-    //      .credentials()
-    self.credentialsProvider?.credentials()
+    let credentialsProvider = AWSCognitoCredentialsProvider(
+      regionType: self.region!,
+      identityPoolId: self.identityPoolId!,
+      identityProviderManager: self.userPool
+    )
+    
+    credentialsProvider.credentials()
       .continueWith(block: { (task: AWSTask!) -> AnyObject! in
         if let error = task.error as? NSError {
           reject("error", "\(error)", error);
+
         } else {
           let expirationTime = self.getTime(date: task.result?.expiration)
           
@@ -143,6 +148,7 @@ class RNAWSCognito: NSObject {
             "sessionKey": task.result?.sessionKey,
             "expirationTime": expirationTime
           ]
+
           resolve(result)
         }
         
