@@ -7,9 +7,7 @@
 		"test": "jest"
 	},
 	"dependencies": {
-		"crypto-js": "^3.1.9-1",
-		"hash.js": "^1.0.3",
-		"moment": "^2.18.1",
+		"aws-signing-utils": "^1.0.2",
 		"react": "~15.4.1",
 		"react-native": "0.42.0",
 		"react_native_mqtt": "^1.1.4"

@@ -13,11 +13,9 @@ import {
   View,
   AsyncStorage,
 } from 'react-native';
-import moment from 'moment';
 
 import AWSConfig from './aws.json';
-
-import { getSignedUrl } from './aws-signing-utils';
+import { getSignedUrl } from 'aws-signing-utils';
 
 import init from 'react_native_mqtt';
 
@@ -35,13 +33,10 @@ export default class ReactNativeAWSCognito extends Component {
     );
 
     AWSCognito.getSession(AWSConfig.email, AWSConfig.password)
-      .then( tokens => {
-        console.log(tokens);
-        return Promise.all([
-          AWSCognito.getCredentials(AWSConfig.email),
-          tokens,
-        ]);
-      } )
+      .then( tokens => Promise.all([
+        AWSCognito.getCredentials(AWSConfig.email),
+        tokens,
+      ]) )
       .then( ([credentials, tokens]) => this.connectToMqtt(credentials, tokens) )
       .catch( err => console.error('Error: ', err) )
   }
@@ -53,8 +48,9 @@ export default class ReactNativeAWSCognito extends Component {
       canonicalUri: '/mqtt',
       service: 'iotdevicegateway',
       region: AWSConfig.region,
-      secretKey: AWSConfig.secretKey, //credentials.secretKey,
-      accessKey: AWSConfig.accessKey, //credentials.accessKey,
+      secretKey: credentials.secretKey,
+      accessKey: credentials.accessKey,
+      sessionKey: credentials.sessionKey,
       host: AWSConfig.endpointAddress,
     };
 
@@ -62,6 +58,7 @@ export default class ReactNativeAWSCognito extends Component {
   }
 
   connectToMqtt(credentials, tokens) {
+    console.log(credentials, tokens);
     const clientUrl = this.getUrl(credentials, tokens)
 
     console.log({ clientUrl });
@@ -75,16 +72,14 @@ export default class ReactNativeAWSCognito extends Component {
       }
     });
 
-    const TOPIC = 'test';
-
-    const client = new Paho.MQTT.Client(clientUrl, 'unique_client_name');
+    const client = new Paho.MQTT.Client(clientUrl, AWSConfig.mqttTopic);
 
     function onConnect() {
       console.log("onConnect");
 
-      client.subscribe(TOPIC, {
+      client.subscribe(AWSConfig.mqttTopic, {
         onSuccess: function(){
-          console.log('subscribed to '+ TOPIC);
+          console.log('subscribed to '+ AWSConfig.mqttTopic);
         },
         onFailure: function(){
           console.log('subscription failed');
@@ -92,7 +87,7 @@ export default class ReactNativeAWSCognito extends Component {
       });
 
       var message = new Paho.MQTT.Message("Hello from react-native");
-      message.destinationName = TOPIC;
+      message.destinationName = AWSConfig.mqttTopic;
       client.send(message);
     }
 
@@ -109,11 +104,11 @@ export default class ReactNativeAWSCognito extends Component {
 
     client.connect({
       useSSL: true,
-      timeout: 3,
-      mqttVersion:4,
+      timeout: 30,
+      mqttVersion: 4,
       onSuccess: onConnect,
-      onFailure: function() {
-        console.log('connectionLost');
+      onFailure: function(err) {
+        console.log('connectionLost', err.errorMessage);
       }
     });
   };
