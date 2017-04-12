@@ -1,6 +1,6 @@
-# React native AWS Cognito module
+# React Native AWS Cognito module
 
-ReactNative module for authentication with AWS Cognito.
+React Native module for authentication with AWS Cognito.
 
 Motivation to work on this module (and so, best use case) was having a secure, simple and cheap user management system that can access AWS IoT devices.
 
