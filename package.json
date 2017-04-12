@@ -1,10 +1,25 @@
 {
-	"name": "ReactNativeAWSCognito",
-	"version": "0.0.2",
-	"private": true,
+	"name": "react-native-aws-cognito",
+	"version": "0.0.3",
+	"private": false,
+	"main": "index.js",
+	"description": "React Native module for authenticating with AWS Cognito.",
+  "keywords": [
+    "react-native",
+    "react",
+    "mobile",
+    "ios",
+    "aws",
+    "cognito",
+    "iot",
+    "authentication"
+  ],
+  "author": {
+    "name": "Slawek Kolodziej",
+    "email": "hfrntt@gmail.com"
+  },
 	"scripts": {
-		"test": "jest",
-		"prepublish": ""
+		"test": "jest"
 	},
 	"dependencies": {
 		"react": "~15.4.1",
