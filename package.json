@@ -1,16 +1,14 @@
 {
 	"name": "ReactNativeAWSCognito",
-	"version": "0.0.1",
+	"version": "0.0.2",
 	"private": true,
 	"scripts": {
-		"start": "node node_modules/react-native/local-cli/cli.js start",
-		"test": "jest"
+		"test": "jest",
+		"prepublish": ""
 	},
 	"dependencies": {
-		"aws-signing-utils": "^1.0.2",
 		"react": "~15.4.1",
-		"react-native": "0.42.0",
-		"react_native_mqtt": "^1.1.4"
+		"react-native": "0.42.0"
 	},
 	"devDependencies": {
 		"babel-jest": "19.0.0",
@@ -18,7 +16,9 @@
 		"babel-preset-react-native": "1.9.1",
 		"babel-preset-stage-0": "^6.22.0",
 		"jest": "19.0.2",
-		"react-test-renderer": "~15.4.1"
+		"react-test-renderer": "~15.4.1",
+    "babel-cli": "^6.23.0",
+    "babel-core": "^6.23.1"
 	},
 	"jest": {
 		"preset": [
