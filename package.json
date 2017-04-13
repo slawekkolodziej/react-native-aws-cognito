@@ -4,6 +4,10 @@
 	"private": false,
 	"main": "index.js",
 	"description": "React Native module for authenticating with AWS Cognito.",
+  "repository": {
+    "type" : "git",
+    "url" : "https://github.com/slawekkolodziej/react-native-aws-cognito"
+  },
   "keywords": [
     "react-native",
     "react",
