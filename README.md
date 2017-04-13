@@ -52,6 +52,5 @@ AWSCognito.getSession(user.email, user.password)
     console.log("Signed AWS IoT url: ", endpointUrl)
   } )
   .catch( err => console.error('Error: ', err) )
-}
 ```
 
