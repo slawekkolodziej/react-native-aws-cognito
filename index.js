@@ -1,2 +1,2 @@
-import { NativeModules } from 'react-native';
-export default NativeModules.RNAWSCognito;
+var NativeModules = require('react-native').NativeModules;
+module.exports = NativeModules.RNAWSCognito;
