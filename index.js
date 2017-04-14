@@ -1,2 +1,2 @@
 var NativeModules = require('react-native').NativeModules;
-module.exports = NativeModules.RNAWSCognito;
+module.exports = NativeModules.ReactNativeAWSCognito;
