@@ -1,7 +1,7 @@
 {
-	"name": "react-native-aws-cognito",
-	"version": "0.0.4",
-	"description": "React Native module for authenticating with AWS Cognito.",
+  "name": "react-native-aws-cognito",
+  "version": "0.0.4",
+  "description": "React Native module for authenticating with AWS Cognito.",
   "main": "index.js",
   "scripts": {},
   "keywords": [
@@ -26,5 +26,5 @@
     "type" : "git",
     "url" : "git://github.com/slawekkolodziej/react-native-aws-cognito.git"
   },
-	"devDependencies": {}
+  "devDependencies": {}
 }
