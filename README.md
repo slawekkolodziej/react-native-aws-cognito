@@ -1,6 +1,32 @@
 # React Native AWS Cognito module
 
-TODO:
+## Adding to project:
+
+1. Install via npm or yarn:
+
+```
+npm install react-native-aws-cognito
+yarn add react-native-aws-cognito
+```
+
+2. Link this project:
+
+```
+react-native link react-native-aws-cognito
+```
+
+3. Add the following frameworks from AWS SDK to your project "Frameworks" directory:
+    - AWSCognitoIdentityProvider
+    - AWSCognito
+    - AWSCore
+
+And make sure all libraries are properly linked. Like on the screenshot below:
+
+![image](./docs/xcode.png)
+
+(Tested with AWS iOS SDK 2.5.1)
+
+## TODO:
 
 - [x] implement user authentication using Cognito provider
 - [x] allow retrieving temporary credentials
@@ -60,4 +86,4 @@ AWSCognito.getSession(user.email, user.password)
     console.log("Signed AWS IoT url: ", endpointUrl)
   } )
   .catch( err => console.error('Error: ', err) )
-```
+``
