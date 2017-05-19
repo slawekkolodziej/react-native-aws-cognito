@@ -48,6 +48,12 @@ RCT_EXPORT_MODULE(ReactNativeAWSCognito);
 }
 
 
+- (void)handleError:(NSError*)error rejecter:(RCTPromiseRejectBlock)reject {
+    reject(error.userInfo[@"__type"],
+           error.userInfo[@"message"],
+           error);
+}
+
 RCT_EXPORT_METHOD(setUserPool:(NSString*)regionName
                   identityPoolId:(NSString*)identityPoolId
                   clientId:(NSString*)clientId
@@ -84,9 +90,7 @@ RCT_EXPORT_METHOD(getSession:(NSString*)email
     [[self.user getSession:email password:password validationData:nil] continueWithBlock:^id _Nullable(AWSTask<AWSCognitoIdentityUserSession *> * _Nonnull task) {
         dispatch_async(dispatch_get_main_queue(), ^{
             if (task.error) {
-                reject(task.error.userInfo[@"__type"],
-                       task.error.userInfo[@"message"],
-                       [[NSError alloc] init]);
+                [self handleError:task.error rejecter:reject];
             } else {
                 NSNumber *expirationTime = [NSNumber numberWithDouble:[self getTime:task.result.expirationTime]];
 
@@ -116,9 +120,7 @@ RCT_EXPORT_METHOD(getCredentials:(NSString*)email
     [[credentialsProvider credentials] continueWithBlock:^id _Nullable(AWSTask<AWSCredentials *> * _Nonnull task) {
         dispatch_async(dispatch_get_main_queue(), ^{
             if (task.error) {
-                reject(task.error.userInfo[@"__type"],
-                       task.error.userInfo[@"message"],
-                       [[NSError alloc] init]);
+                [self handleError:task.error rejecter:reject];
             } else {
                 NSNumber *expirationTime = [NSNumber numberWithDouble:[self getTime:task.result.expiration]];
 
@@ -150,11 +152,7 @@ RCT_EXPORT_METHOD(createUser:(NSString*)username
      continueWithBlock:^id _Nullable(AWSTask<AWSCognitoIdentityUserPoolSignUpResponse *> * _Nonnull task) {
         dispatch_async(dispatch_get_main_queue(), ^{
             if (task.error) {
-                NSError *error = nil;
-
-                reject(task.error.userInfo[@"__type"],
-                       task.error.userInfo[@"message"],
-                       error);
+                [self handleError:task.error rejecter:reject];
 
             } else {
                 NSDictionary *result = @{
@@ -181,19 +179,14 @@ RCT_EXPORT_METHOD(confirmUser:(NSString*)email
      continueWithBlock:^id _Nullable(AWSTask<AWSCognitoIdentityUserConfirmSignUpResponse *> * _Nonnull task) {
         dispatch_async(dispatch_get_main_queue(), ^{
             if (task.error) {
-                NSError *error = nil;
-
-                reject(task.error.userInfo[@"__type"],
-                       task.error.userInfo[@"message"],
-                       error);
-
+                [self handleError:task.error rejecter:reject];
             } else {
-                NSDictionary *result = ;
-
-                resolve(@{
+                NSDictionary *result = @{
                                          @"username": email,
                                          @"userConfirmed": @true
-                                         });
+                                         };
+
+                resolve(result);
             }
         });
         return nil;
