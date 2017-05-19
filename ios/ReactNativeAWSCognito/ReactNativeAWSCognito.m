@@ -82,6 +82,7 @@ RCT_EXPORT_METHOD(getSession:(NSString*)email
     self.user = [self.userPool getUser:email];
 
     [[self.user getSession:email password:password validationData:nil] continueWithBlock:^id _Nullable(AWSTask<AWSCognitoIdentityUserSession *> * _Nonnull task) {
+        dispatch_async(dispatch_get_main_queue(), ^{
             if (task.error) {
                 reject(task.error.userInfo[@"__type"],
                        task.error.userInfo[@"message"],
@@ -97,7 +98,7 @@ RCT_EXPORT_METHOD(getSession:(NSString*)email
                                         };
                 resolve(result);
             }
-
+        });
         return nil;
     }];
 }
@@ -113,22 +114,24 @@ RCT_EXPORT_METHOD(getCredentials:(NSString*)email
                                                           identityProviderManager:self.userPool];
 
     [[credentialsProvider credentials] continueWithBlock:^id _Nullable(AWSTask<AWSCredentials *> * _Nonnull task) {
-        if (task.error) {
-            reject(task.error.userInfo[@"__type"],
-                   task.error.userInfo[@"message"],
-                   [[NSError alloc] init]);
-        } else {
-            NSNumber *expirationTime = [NSNumber numberWithDouble:[self getTime:task.result.expiration]];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if (task.error) {
+                reject(task.error.userInfo[@"__type"],
+                       task.error.userInfo[@"message"],
+                       [[NSError alloc] init]);
+            } else {
+                NSNumber *expirationTime = [NSNumber numberWithDouble:[self getTime:task.result.expiration]];
 
-            NSDictionary *result = @{
-                                     @"accessKey": task.result.accessKey,
-                                     @"secretKey": task.result.secretKey,
-                                     @"sessionKey": task.result.sessionKey,
-                                     @"expirationTime": expirationTime
-                                    };
+                NSDictionary *result = @{
+                                         @"accessKey": task.result.accessKey,
+                                         @"secretKey": task.result.secretKey,
+                                         @"sessionKey": task.result.sessionKey,
+                                         @"expirationTime": expirationTime
+                                        };
 
-            resolve(result);
-        }
+                resolve(result);
+            }
+        });
         return nil;
     }];
 }
@@ -143,24 +146,28 @@ RCT_EXPORT_METHOD(createUser:(NSString*)username
     email.name = @"email";
     email.value = username;
 
-    [[self.userPool signUp:username password:password userAttributes:@[email] validationData:nil] continueWithBlock:^id _Nullable(AWSTask<AWSCognitoIdentityUserPoolSignUpResponse *> * _Nonnull task) {
-
+    [[self.userPool signUp:username password:password userAttributes:@[email] validationData:nil]
+     continueWithBlock:^id _Nullable(AWSTask<AWSCognitoIdentityUserPoolSignUpResponse *> * _Nonnull task) {
         dispatch_async(dispatch_get_main_queue(), ^{
-            if(task.error){
+            if (task.error) {
                 NSError *error = nil;
 
                 reject(task.error.userInfo[@"__type"],
                        task.error.userInfo[@"message"],
                        error);
 
-            }else {
+            } else {
                 NSDictionary *result = @{
                                          @"username": username,
                                          @"userConfirmed": task.result.userConfirmed
                                          };
 
                 resolve(result);
-            }});
+            }
+        });
+        return nil;
+    }];
+}
 
 
 RCT_EXPORT_METHOD(confirmUser:(NSString*)email
