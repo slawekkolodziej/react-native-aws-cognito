@@ -194,4 +194,50 @@ RCT_EXPORT_METHOD(confirmUser:(NSString*)email
 }
 
 
+RCT_EXPORT_METHOD(requestPasswordReset:(NSString*)email
+                  resolver:(RCTPromiseResolveBlock)resolve
+                  rejecter:(RCTPromiseRejectBlock)reject
+) {
+    self.user = [self.userPool getUser:email];
+
+    [[self.user forgotPassword]
+     continueWithBlock:^id _Nullable(AWSTask<AWSCognitoIdentityUserForgotPasswordResponse *> * _Nonnull task) {
+         dispatch_async(dispatch_get_main_queue(), ^{
+             if (task.error) {
+                 [self handleError:task.error rejecter:reject];
+             } else {
+                 NSDictionary *result = @{
+                                          @"destination": task.result.codeDeliveryDetails.destination
+                                          };
+                 resolve(result);
+             }
+         });
+         return nil;
+     }];
+}
+
+
+RCT_EXPORT_METHOD(resetPassword:(NSString*)email
+                  newPassword:(NSString*)newPassword
+                  confirmationCode:(NSString*)confirmationCode
+                  resolver:(RCTPromiseResolveBlock)resolve
+                  rejecter:(RCTPromiseRejectBlock)reject
+) {
+    self.user = [self.userPool getUser:email];
+
+    [[self.user confirmForgotPassword:confirmationCode password:newPassword]
+     continueWithBlock:^id _Nullable(AWSTask<AWSCognitoIdentityUserConfirmForgotPasswordResponse *> * _Nonnull task) {
+         dispatch_async(dispatch_get_main_queue(), ^{
+             if (task.error) {
+                 [self handleError:task.error rejecter:reject];
+             } else {
+                NSDictionary *result = @{};
+                resolve(result);
+             }
+         });
+         return nil;
+     }];
+}
+
+
 @end

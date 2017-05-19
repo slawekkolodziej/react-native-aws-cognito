@@ -31,7 +31,7 @@ And make sure all libraries are properly linked. Like on the screenshot below:
 - [x] implement user authentication using Cognito provider
 - [x] allow retrieving temporary credentials
 - [x] implement API for registration
-- [ ] implement API for password recovery
+- [x] implement API for password recovery
 - [ ] implement API for storing user data
 
 React Native module for authentication with AWS Cognito.
@@ -86,4 +86,4 @@ AWSCognito.getSession(user.email, user.password)
     console.log("Signed AWS IoT url: ", endpointUrl)
   } )
   .catch( err => console.error('Error: ', err) )
-``
+```
