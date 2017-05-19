@@ -30,7 +30,7 @@ And make sure all libraries are properly linked. Like on the screenshot below:
 
 - [x] implement user authentication using Cognito provider
 - [x] allow retrieving temporary credentials
-- [ ] implement API for registration (work in progress)
+- [x] implement API for registration
 - [ ] implement API for password recovery
 - [ ] implement API for storing user data
 

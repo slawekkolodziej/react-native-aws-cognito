@@ -1,6 +1,6 @@
 {
   "name": "react-native-aws-cognito",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "React Native module for authenticating with AWS Cognito.",
   "main": "index.js",
   "scripts": {},
