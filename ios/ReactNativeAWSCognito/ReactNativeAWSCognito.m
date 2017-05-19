@@ -161,6 +161,34 @@ RCT_EXPORT_METHOD(createUser:(NSString*)username
 
                 resolve(result);
             }});
+
+
+RCT_EXPORT_METHOD(confirmUser:(NSString*)email
+                  withCode:(NSString*)confirmationCode
+                  resolver:(RCTPromiseResolveBlock)resolve
+                  rejecter:(RCTPromiseRejectBlock)reject
+) {
+    self.user = [self.userPool getUser:email];
+
+    [[self.user confirmSignUp:confirmationCode]
+     continueWithBlock:^id _Nullable(AWSTask<AWSCognitoIdentityUserConfirmSignUpResponse *> * _Nonnull task) {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if (task.error) {
+                NSError *error = nil;
+
+                reject(task.error.userInfo[@"__type"],
+                       task.error.userInfo[@"message"],
+                       error);
+
+            } else {
+                NSDictionary *result = ;
+
+                resolve(@{
+                                         @"username": email,
+                                         @"userConfirmed": @true
+                                         });
+            }
+        });
         return nil;
     }];
 }
